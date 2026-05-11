@@ -1,0 +1,27 @@
+# Binaries (after go build -o bloggertowxr)
+/bloggertowxr
+bloggertowxr
+*.exe
+
+# Google Takeout / local Blogger export (large; keep outside git — point -input here locally)
+/Blogger/
+
+# Go build cache / test binaries
+*.test
+*.out
+
+# Coverage
+coverage.out
+*.coverprofile
+
+# OS
+.DS_Store
+
+# Generated WXR exports (regenerate; do not commit large XML)
+export.xml
+output.xml
+*-wxr.xml
+*.wordpress.*.xml
+
+# Optional: local scratch output directory
+/out/
