@@ -53,8 +53,3 @@ See **`docs/README.md`** for a detailed, novice-oriented walkthrough of the Go p
 ```bash
 go test ./...
 ```
-
-## What stays out of Git
-
-The **`Blogger/`** Takeout tree (feeds, albums, profile CSVs) is **not** tracked: it is large and personal. Keep your export next to the clone or anywhere on disk and pass **`-input`** to that path. The built binary **`bloggertowxr`** and generated **`export.xml`** (and similar) are listed in **`.gitignore`** as well.
-
