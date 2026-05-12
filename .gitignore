@@ -1,6 +1,10 @@
-# Binaries (after go build -o bloggertowxr)
-/bloggertowxr
-*.exe
+# --- bloggertowxr (built binary lives next to go.mod) ---
+/bloggertowxr/bloggertowxr
+/bloggertowxr/*.exe
+
+# --- bloggertohugo ---
+/bloggertohugo/bloggertohugo
+/bloggertohugo/*.exe
 
 # Google Takeout / local Blogger export (large; keep outside git — point -input here locally)
 /Blogger/

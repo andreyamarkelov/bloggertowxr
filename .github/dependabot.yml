@@ -1,0 +1,13 @@
+# Dependabot version updates for Go modules in this monorepo.
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/bloggertowxr"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/bloggertohugo"
+    schedule:
+      interval: "weekly"
