@@ -1,6 +1,5 @@
 # Binaries (after go build -o bloggertowxr)
 /bloggertowxr
-bloggertowxr
 *.exe
 
 # Google Takeout / local Blogger export (large; keep outside git — point -input here locally)
