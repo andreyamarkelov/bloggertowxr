@@ -45,7 +45,7 @@ Example with verbose logging:
 - **Posts** (`blogger:type` POST) and **pages** (PAGE) with status **LIVE**.
 - **Labels** → Hugo front matter **`tags:`** (sorted).
 - **Author** name from Atom → front matter **`author:`** when present.
-- **Images**: `http://`, `https://`, and protocol-relative `//…` URLs in `<img src="…">` are fetched and saved as `img-001.ext`, … beside **`index.md`**. Failed downloads are logged to stderr; the original remote `src` is left in the HTML so Markdown may still reference the remote URL.
+- **Images**: `http://`, `https://`, and protocol-relative `//…` URLs in `<img src="…">` are fetched and saved as `img-001.ext`, … beside **`index.md`**. If a download **fails**, that `<img>` is **dropped** from the HTML before Markdown is generated, and empty **`<a>…</a>`** wrappers left behind are removed so CDN links do not linger. After conversion, **link-wrapped images** like `[![](img-001.jpg)](https://blogger.googleusercontent.com/…)` are reduced to **`![](img-001.jpg)`** so old CDN URLs are not kept as link targets.
 
 ## Output layout (Hugo leaf bundles)
 

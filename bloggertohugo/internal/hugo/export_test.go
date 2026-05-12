@@ -27,6 +27,50 @@ func TestResolveImageURL(t *testing.T) {
 	}
 }
 
+func TestRemoveImgTagsForFailedDownloads(t *testing.T) {
+	html := `<p>x <img src="https://bad.example/missing.png" alt="a"> y</p>`
+	attempted := map[string]bool{"https://bad.example/missing.png": true}
+	out := removeImgTagsForFailedDownloads(html, "", attempted, map[string]string{})
+	if strings.Contains(out, "<img") {
+		t.Fatalf("expected img removed, got %q", out)
+	}
+	if !strings.Contains(out, "<p>x") || !strings.Contains(out, "y</p>") {
+		t.Fatalf("expected surrounding text kept, got %q", out)
+	}
+	// Successful download: do not remove before replace
+	html2 := `<p><img src="https://ok/x.png"></p>`
+	attempted2 := map[string]bool{"https://ok/x.png": true}
+	okMap := map[string]string{"https://ok/x.png": "img-001.png"}
+	out2 := removeImgTagsForFailedDownloads(html2, "", attempted2, okMap)
+	if !strings.Contains(out2, "https://ok/x.png") {
+		t.Fatalf("successful URL img should remain until replaceImgSrc: %q", out2)
+	}
+}
+
+func TestRemoveEmptyAnchorTags(t *testing.T) {
+	in := "<p><a href=\"https://blogger.googleusercontent.com/x\">\n\t</a>y</p>"
+	out := removeEmptyAnchorTags(in)
+	if strings.Contains(out, "<a ") {
+		t.Fatalf("got %q", out)
+	}
+	if !strings.Contains(out, "y</p>") {
+		t.Fatalf("got %q", out)
+	}
+}
+
+func TestStripMarkdownImageLinkWrappers(t *testing.T) {
+	in := `[![](img-001.jpg)](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgIFhWThYHIBIQxhirkxGuwDpByfgug6tavVYxzeiaa6yVCvn9EgNy003OvxxAIyh6eK9DlSkcXCRt1ndl2bVCfQMje7uILO4wpFe6w9jAjUZul4VcKOGSFJdPQ4tLRGXtZGND0xtMr7I8u/s1600-h/window_tax.jpg)`
+	want := `![](img-001.jpg)`
+	if got := stripMarkdownImageLinkWrappers(in); got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+	in2 := `[![caption](img-002.png)](https://example.com/original)`
+	want2 := `![caption](img-002.png)`
+	if got := stripMarkdownImageLinkWrappers(in2); got != want2 {
+		t.Fatalf("got %q want %q", got, want2)
+	}
+}
+
 func TestReplaceImgSrc(t *testing.T) {
 	html := `<p><img src="https://ex/u.png" alt="x"></p>`
 	out := replaceImgSrc(html, map[string]string{"https://ex/u.png": "img-001.png"})

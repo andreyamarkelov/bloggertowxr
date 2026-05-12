@@ -90,6 +90,7 @@ bloggertohugo/internal/model
 | `internal/model/content.go` | **One struct** describing one post or page after parsing. |
 | `internal/blogger/parse.go` | **Read** `feed.atom` → `[]model.Content` (mirrors `bloggertowxr`’s parser pattern). |
 | `internal/hugo/export.go` | **Write** bundles: downloads, rewrite, Markdown, `index.md`. |
+| `internal/hugo/markdown_postprocess.go` | Post-process Markdown (e.g. unwrap CDN links around local images). |
 | `internal/blogger/parse_test.go` | Atom parser tests (inline fixture XML + tempdir layout). |
 | `internal/hugo/export_test.go` | URL helpers + export against `httptest` image server. |
 
@@ -192,10 +193,13 @@ If you fix a parsing bug, consider **porting the same fix** to `bloggertowxr` so
 3. **`collectResolvedImageURLs`** — regex scan for `<img … src="…">` (same **idea** as `bloggertowxr`’s `imgTagSrcRE`, extended to capture full tags for future use). Deduplicate URLs while preserving order.
 4. **`resolveImageURL`** — supports `http(s):`, `//host`, root-relative with base, and path-relative resolved with `url.Parse(base).Parse(raw)`.
 5. **`downloadImages`** — goroutine per URL (up to **Concurrency**). Filenames are **`img-001` + optional extension** from the URL path; if missing, **`Content-Type`** may append an extension after the GET.
-6. **`replaceImgSrc`** — string replace on `src="URL"` / `src='URL'`; sorts URLs **longest first** to reduce accidental partial replacement edge cases.
-7. **`htmltomarkdown.ConvertString`** — Markdown body.
-8. **`frontMatterYAML`** — builds a `map[string]interface{}` with `title`, `date` (RFC3339), `draft: false`, `slug` (**bundle** slug), optional `author`, optional sorted `tags`, and **`type: page`** for pages.
-9. **`os.WriteFile`** — `index.md` with mode `0644`.
+6. **`removeImgTagsForFailedDownloads`** — removes entire `<img …>` tags whose URL was attempted but **not** present in `urlToFile` (download error), so failed assets do not appear in Markdown.
+7. **`removeEmptyAnchorTags`** — removes `<a …></a>` that only contain whitespace (common after stripping an image that lived inside a Blogger anchor).
+8. **`replaceImgSrc`** — string replace on `src="URL"` / `src='URL'`; sorts URLs **longest first** to reduce accidental partial replacement edge cases.
+9. **`htmltomarkdown.ConvertString`** — Markdown body.
+10. **`stripMarkdownImageLinkWrappers`** (`markdown_postprocess.go`) — removes Markdown of the form `[![](local.jpg)](https://blogger.googleusercontent.com/…)` so only `![](local.jpg)` remains (typical when `<a><img></a>` pointed at the CDN while `src` was rewritten to a bundle file).
+11. **`frontMatterYAML`** — builds a `map[string]interface{}` with `title`, `date` (RFC3339), `draft: false`, `slug` (**bundle** slug), optional `author`, optional sorted `tags`, and **`type: page`** for pages.
+12. **`os.WriteFile`** — `index.md` with mode `0644`.
 
 ### Safety / limits
 
@@ -208,7 +212,7 @@ If you fix a parsing bug, consider **porting the same fix** to `bloggertowxr` so
 Go discovers tests in files ending with **`_test.go`**.
 
 - **`internal/blogger/parse_test.go`** — Inline minimal Atom (copied from the `bloggertowxr` fixture style) verifies posts/pages/comments skipping and **`ResolveFeedPath`** with `t.TempDir()`.
-- **`internal/hugo/export_test.go`** — Unit tests for **`resolveImageURL`** / **`replaceImgSrc`**, plus an integration-style test that serves a tiny “image” from **`httptest.Server`**, runs **`Export`**, and asserts the generated Markdown references a local **`img-001`** filename.
+- **`internal/hugo/export_test.go`** — Unit tests for **`resolveImageURL`** / **`replaceImgSrc`** / **`removeImgTagsForFailedDownloads`** / **`stripMarkdownImageLinkWrappers`**, plus an integration-style test that serves a tiny “image” from **`httptest.Server`**, runs **`Export`**, and asserts the generated Markdown references a local **`img-001`** filename.
 
 Run from this module’s directory:
 

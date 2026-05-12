@@ -88,15 +88,22 @@ func Export(siteRoot string, items []model.Content, opts Options) (Stats, error)
 		}
 
 		resolved := collectResolvedImageURLs(it.HTML, base)
+		attempted := make(map[string]bool, len(resolved))
+		for _, u := range resolved {
+			attempted[u] = true
+		}
 		urlToName, nOK, nFail := downloadImages(client, sem, bundleDir, resolved, opts)
 		st.ImagesOK += nOK
 		st.ImagesFailed += nFail
 
-		htmlLocal := replaceImgSrc(it.HTML, urlToName)
+		htmlClean := removeImgTagsForFailedDownloads(it.HTML, base, attempted, urlToName)
+		htmlClean = removeEmptyAnchorTags(htmlClean)
+		htmlLocal := replaceImgSrc(htmlClean, urlToName)
 		md, err := htmltomarkdown.ConvertString(htmlLocal)
 		if err != nil {
 			return st, fmt.Errorf("html→md %q: %w", it.Title, err)
 		}
+		md = stripMarkdownImageLinkWrappers(md)
 		md = strings.TrimSpace(md) + "\n"
 
 		fm, err := frontMatterYAML(it, slug)
@@ -205,6 +212,44 @@ func resolveImageURL(raw, base string) string {
 		}
 	}
 	return ""
+}
+
+// removeImgTagsForFailedDownloads strips entire <img> tags whose resolved URL was in the
+// download list (attempted) but did not get a local file (not in urlToFile). Images we
+// never attempted to fetch (e.g. unresolved relative src without -blogger-url) are left.
+func removeImgTagsForFailedDownloads(html, base string, attempted map[string]bool, urlToFile map[string]string) string {
+	indices := imgTagSrcRE.FindAllStringSubmatchIndex(html, -1)
+	for i := len(indices) - 1; i >= 0; i-- {
+		loc := indices[i]
+		if len(loc) < 8 {
+			continue
+		}
+		fullStart, fullEnd := loc[0], loc[1]
+		rawStart, rawEnd := loc[4], loc[5]
+		raw := strings.TrimSpace(html[rawStart:rawEnd])
+		full := resolveImageURL(raw, base)
+		if full == "" || !attempted[full] {
+			continue
+		}
+		if fn := urlToFile[full]; fn != "" {
+			continue
+		}
+		html = html[:fullStart] + html[fullEnd:]
+	}
+	return html
+}
+
+// removeEmptyAnchorTags drops <a ...></a> that contain only whitespace, which often
+// remain after a failed <img> inside a Blogger lightbox link was removed.
+var emptyAnchorRE = regexp.MustCompile(`(?i)<a\s[^>]*>\s*</a>`)
+
+func removeEmptyAnchorTags(html string) string {
+	prev := ""
+	for i := 0; i < 50 && html != prev; i++ {
+		prev = html
+		html = emptyAnchorRE.ReplaceAllString(html, "")
+	}
+	return html
 }
 
 func replaceImgSrc(html string, urlToFile map[string]string) string {

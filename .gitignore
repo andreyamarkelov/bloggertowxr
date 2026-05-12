@@ -28,3 +28,6 @@ output.xml
 
 # Optional: local scratch output directory
 /out/
+
+# Local Hugo export from bloggertohugo -output (regenerate; do not commit)
+/hugo-site/
